@@ -198,7 +198,11 @@ def main():
             continue
         page = None
         page_html = ''
-        for prefix in (('Scroll_of_', 'Plate_of_') if typ == 'geomancy' else ('Scroll_of_',)):
+        # three tries at most: the scroll page, a geomancy plate, then the spell's own page. Some spells have no scroll
+        # item page but the spell page still carries the same "Purchased From" table (Firestorm, Geohelix), and 67 spells
+        # were being dropped as "no page" for that reason alone
+        prefixes = ('Scroll_of_', 'Plate_of_', '') if typ == 'geomancy' else ('Scroll_of_', '')
+        for prefix in prefixes:
             cand = prefix + name
             body = fetch(cand, a.cache)
             if body:
