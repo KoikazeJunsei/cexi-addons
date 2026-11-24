@@ -10,6 +10,7 @@ the clients keep them, so a folder copies straight into place.
 | Auction House 1.0 | VanaCore | [`addons/vanacore/auctionhouse-vanacore`](addons/vanacore/auctionhouse-vanacore) | The auction house as its own window: stock, sale history and graphs, watch list, selling, sold notices |
 | Clawmark 1.0 | VanaCore | [`addons/vanacore/clawmark-vanacore`](addons/vanacore/clawmark-vanacore) | Raid-style marks over targets, shared with your party and alliance; folds into an assist bar |
 | VanaMaps 1.0 | VanaCore | [`addons/vanacore/vanamaps`](addons/vanacore/vanamaps) | Every zone's map as a window: pan and zoom, you and your party on it, signposts into neighbouring zones, pins with notes shared in chat, a bare map that fades as you walk |
+| Spell Tracker 0.1 | VanaCore | [`addons/vanacore/spelltracker-vanacore`](addons/vanacore/spelltracker-vanacore) | The spells this job can still learn, where each scroll comes from, and whether it is already in your bags or stored at Gramateus |
 
 Each folder has its own README with what it does, its commands and how it talks to the server.
 
