@@ -1,8 +1,0 @@
-Warrior Die (item 5477) from items_1.lua:
-  description = "COR Lv.49\nTeaches the Phantom Roll ability\n"Warrior's Roll."..."
-  category = usable, type = 7, flag_names = {mystery_box, mog_garden, scroll, canuse, cantradenpc, rare}
-  ah = 60, ah_name = "dice",  base_sell = ...
-BG-Wiki Warrior_Die page, same tables the scroll crawler already reads:
-  AH Listing: -> Scrolls -> Dice
-  Purchased From...: NPC Name | Zone | Notes
-                     Chayaya   | Al Zahbi - (J-8) | 68,000 Gil
