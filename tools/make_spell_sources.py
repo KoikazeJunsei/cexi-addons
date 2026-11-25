@@ -109,12 +109,25 @@ def fetch(page, cache_dir):
     return body
 
 
+def zone_of(text, kind):
+    """The place a note names: 'Hasim / Lower Jeuno - (H-9) / 23,400 Gil' -> 'Lower Jeuno',
+    'Coral Sahagin / Sea Serpent Grotto (+2)' -> 'Sea Serpent Grotto'. '' when the note names no place."""
+    if kind not in ('shop', 'drop', 'bcnm', 'quest'):
+        return ''
+    parts = [x.strip() for x in text.split(' / ')]
+    if len(parts) < 2:
+        return ''
+    z = re.sub(r'\s*-\s*\([^)]*\)\s*$', '', parts[1])   # a shop's grid reference
+    z = re.sub(r'\s*\(\+\d+\)\s*$', '', z)             # a drop's "(+N more)"
+    z = re.sub(r'\s*\(\+\d+\)', '', z)                  # a marker that ended up inside the place
+    return z.strip()
+
 def parse(page_html, name):
-    """-> (tags, note) for one scroll page. The pages put a caption row above each header row, so the kind is found by
+    """-> (tags, note, tag, zone) for one scroll page. The pages put a caption row above each header row, so the kind is found by
     the header's own cells rather than by the table's first row."""
     tags, bits = [], []
     has_ah = 'AH Listing' in page_html
-    kinds = [('shop', r'NPC Name'), ('drop', r'Monster Name'), ('bcnm', r'Battle Name|Battlefield'),
+    kinds = [('shop', r'NPC Name'), ('drop', r'Monster Name'), ('bcnm', r'^Battle Name$'),
              ('quest', r'^Quest$')]
     for rows in tables(page_html):
         for i, row in enumerate(rows):
@@ -131,7 +144,14 @@ def parse(page_html, name):
                 elif kind == 'drop':
                     text = ' / '.join(x for x in (r[0], r[2] if len(r) > 2 else '', r[3] if len(r) > 3 else '') if x)
                 elif kind == 'bcnm':
-                    text = ' / '.join(x for x in (r[0], r[3] if len(r) > 3 else '') if x)
+                    zone_cell = ''
+                    for ci, c in enumerate(row):
+                        if re.search(r'^Zone$', c) and ci < len(r):
+                            zone_cell = r[ci]
+                            break
+                    if not zone_cell:
+                        zone_cell = r[3] if len(r) > 3 else ''
+                    text = ' / '.join(x for x in (r[0], zone_cell) if x)
                 else:
                     text = r[0]
                 if text and (kind, text) not in [(b[0], b[1]) for b in bits]:
@@ -141,17 +161,18 @@ def parse(page_html, name):
     if has_ah:
         tags.append('ah')
     if not tags:
-        return [], '', ''
+        return [], '', '', ''
     tags = [t for t in ORDER if t in tags]
     bits.sort(key=lambda b: ORDER.index(b[0]))
     if not bits:
-        return tags, '', tags[0]  # an AH-only scroll: the addon's own tag note says what an AH listing means
+        return tags, '', tags[0], ''  # an AH-only scroll: the addon's own tag note says what an AH listing means
     # the badge always names the source the note describes, so a spell whose best path is a drop never wears an "AH"
     # label over a monster's name
     kind, text, n = bits[0]
+    zone = zone_of(text, kind)
     if n > 1:
         text += ' (+%d)' % (n - 1)
-    return tags, text, kind
+    return tags, text, kind, zone
 
 
 def lua_quote(s):
@@ -211,10 +232,10 @@ def main():
         if page is None:
             missing.append((sid, name))
             continue
-        tags, note, tag = parse(page_html, name)
+        tags, note, tag, zone = parse(page_html, name)
         if not tags:
             continue
-        rows[sid] = {'tag': tag, 'tags': tags, 'note': note,
+        rows[sid] = {'tag': tag, 'tags': tags, 'note': note, 'zone': zone,
                      'src': WIKI + urllib.parse.quote(page.replace(' ', '_'), safe=':_()')}
         if i % 25 == 0:
             print('  %d/%d (%d rows)' % (i, len(spells), len(rows)), file=sys.stderr)
@@ -239,8 +260,9 @@ def main():
         for sid in sorted(rows):
             r = rows[sid]
             taglist = ','.join(lua_quote(t) for t in r['tags'])
-            f.write('[%d]={tag=%s,tags={%s},note=%s,src=%s}, -- %s\n'
-                    % (sid, lua_quote(r['tag']), taglist, lua_quote(r['note']), lua_quote(r['src']), names.get(sid, '')))
+            f.write('[%d]={tag=%s,tags={%s},note=%s,zone=%s,src=%s}, -- %s\n'
+                    % (sid, lua_quote(r['tag']), taglist, lua_quote(r['note']), lua_quote(r.get('zone', '')),
+                       lua_quote(r['src']), names.get(sid, '')))
         f.write('}\n\nreturn M\n')
     print('wrote %s: %d rows, %d spells with no scroll page' % (out, len(rows), len(missing)))
     if missing:
